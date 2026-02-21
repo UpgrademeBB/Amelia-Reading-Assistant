@@ -3,6 +3,8 @@ from pypdf import PdfReader
 import time
 from gtts import gTTS
 from io import BytesIO
+import re
+from gtts.tts import gTTSError
 
 st.set_page_config(page_title="Amelia Reader", layout="wide")
 st.title("Amelia Reads Your Reports")
@@ -26,36 +28,52 @@ with col2:
         for page in reader.pages:
             full_text += page.extract_text() + "\n\n"
         
-        # Split into safe 5000-char chunks
-        chunk_size = 5000
-        chunks = [full_text[i:i+chunk_size] for i in range(0, len(full_text), chunk_size)]
-        
-        sentences = [s.strip() + "." for s in full_text.replace("\n", " ").split(".") if s.strip()]
+        # Clean sentence splitting
+        sentences = re.split(r'(?<=[.!?])\s+', full_text.strip())
+        sentences = [s.strip() for s in sentences if s.strip()]
         
         if st.button("▶️ Start Reading"):
-            placeholder = st.empty()
-            current_sentence = 0
+            text_placeholder = st.empty()
+            audio_placeholder = st.empty()
+            current = 0
             
-            for chunk_idx, chunk in enumerate(chunks):
-                if not chunk.strip():
+            for sentence in sentences:
+                if not sentence.strip():
                     continue
-                    
-                # Generate and play voice for this chunk
-                tts = gTTS(text=chunk, lang='en', slow=False)
-                audio_bytes = BytesIO()
-                tts.write_to_fp(audio_bytes)
-                audio_bytes.seek(0)
-                st.audio(audio_bytes, format="audio/mp3", autoplay=True)
                 
-                # Highlight only sentences in this chunk
-                chunk_sentences = [s.strip() + "." for s in chunk.replace("\n", " ").split(".") if s.strip()]
-                for sent in chunk_sentences:
-                    highlighted = " ".join(
-                        [f"**{sentences[j]}**" if j == current_sentence else sentences[j] 
-                         for j in range(len(sentences))]
-                    )
-                    placeholder.markdown(highlighted)
-                    current_sentence += 1
-                    time.sleep(1.2)
+                # Highlight current sentence in full text
+                highlighted = []
+                for j, sent in enumerate(sentences):
+                    if j == current:
+                        highlighted.append(f"**{sent}**")
+                    else:
+                        highlighted.append(sent)
+                text_placeholder.markdown(" ".join(highlighted))
+                
+                # Safe TTS with retries
+                audio_fp = BytesIO()
+                success = False
+                for attempt in range(5):
+                    try:
+                        tts = gTTS(text=sentence, lang='en', slow=False)
+                        tts.write_to_fp(audio_fp)
+                        audio_fp.seek(0)
+                        success = True
+                        break
+                    except (gTTSError, Exception):
+                        if attempt == 4:
+                            st.error("TTS temporarily unavailable – retrying in a moment...")
+                            break
+                        time.sleep(1.5 * (attempt + 1)) # backoff
+                
+                if success:
+                    audio_placeholder.audio(audio_fp, format="audio/mp3", autoplay=True)
+                
+                # Dynamic sleep based on speaking length (\~180-200 words per minute)
+                word_count = len(sentence.split())
+                sleep_time = max(1.5, word_count * 0.35)
+                time.sleep(sleep_time)
+                
+                current += 1
             
-            st.success("Full report finished")
+            st.success("✅ Full report finished reading!")

@@ -11,8 +11,6 @@ col1, col2 = st.columns([1, 2])
 
 with col1:
     st.subheader("Amelia")
-    
-    # MP4 loop — plays automatically on left, stays looping
     st.caption("Amelia Movement Loop (MP4)")
     video_file = st.file_uploader("Upload Amelia typing loop (MP4)", type="mp4")
     if video_file:
@@ -20,7 +18,7 @@ with col1:
 
 with col2:
     st.subheader("Your Report")
-    pdf_file = st.file_uploader("Upload PDF report", type="pdf")
+    pdf_file = st.file_uploader("Upload PDF report (any size)", type="pdf")
     
     if pdf_file:
         reader = PdfReader(pdf_file)
@@ -28,25 +26,36 @@ with col2:
         for page in reader.pages:
             full_text += page.extract_text() + "\n\n"
         
+        # Split into safe 5000-char chunks
+        chunk_size = 5000
+        chunks = [full_text[i:i+chunk_size] for i in range(0, len(full_text), chunk_size)]
+        
         sentences = [s.strip() + "." for s in full_text.replace("\n", " ").split(".") if s.strip()]
         
         if st.button("▶️ Start Reading"):
-            # Video keeps playing (no duplicate call)
-            
-            # Automatic female voice
-            tts = gTTS(text=full_text, lang='en', slow=False)
-            audio_bytes = BytesIO()
-            tts.write_to_fp(audio_bytes)
-            audio_bytes.seek(0)
-            st.audio(audio_bytes, format="audio/mp3", autoplay=True)
-            
-            # Highlight text
             placeholder = st.empty()
-            for i in range(len(sentences)):
-                highlighted = " ".join(
-                    [f"**{sent}**" if j == i else sent for j, sent in enumerate(sentences)]
-                )
-                placeholder.markdown(highlighted)
-                time.sleep(1.2)
+            current_sentence = 0
             
-            st.success("Report finished")
+            for chunk_idx, chunk in enumerate(chunks):
+                if not chunk.strip():
+                    continue
+                    
+                # Generate and play voice for this chunk
+                tts = gTTS(text=chunk, lang='en', slow=False)
+                audio_bytes = BytesIO()
+                tts.write_to_fp(audio_bytes)
+                audio_bytes.seek(0)
+                st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+                
+                # Highlight only sentences in this chunk
+                chunk_sentences = [s.strip() + "." for s in chunk.replace("\n", " ").split(".") if s.strip()]
+                for sent in chunk_sentences:
+                    highlighted = " ".join(
+                        [f"**{sentences[j]}**" if j == current_sentence else sentences[j] 
+                         for j in range(len(sentences))]
+                    )
+                    placeholder.markdown(highlighted)
+                    current_sentence += 1
+                    time.sleep(1.2)
+            
+            st.success("Full report finished")

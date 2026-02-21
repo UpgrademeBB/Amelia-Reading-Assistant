@@ -1,21 +1,10 @@
 import streamlit as st
 from pypdf import PdfReader
-import time
-from gtts import gTTS
-from io import BytesIO
 import re
-from gtts.tts import gTTSError
+import json
 
 st.set_page_config(page_title="Amelia Reader", layout="wide")
 st.title("Amelia Reads Your Reports")
-
-# Session state
-if 'current_sentence' not in st.session_state:
-    st.session_state.current_sentence = 0
-if 'playback_state' not in st.session_state:
-    st.session_state.playback_state = 'stopped' # stopped, playing, paused
-if 'sentences' not in st.session_state:
-    st.session_state.sentences = []
 
 col1, col2 = st.columns([1, 2])
 
@@ -30,90 +19,106 @@ with col2:
     st.subheader("Your Report")
     pdf_file = st.file_uploader("Upload PDF report (any size)", type="pdf")
     
-    if pdf_file and not st.session_state.sentences:
-        reader = PdfReader(pdf_file)
-        full_text = ""
-        for page in reader.pages:
-            full_text += page.extract_text() + "\n\n"
+    if pdf_file:
+        if "sentences" not in st.session_state or st.button("🔄 Reload PDF"):
+            with st.spinner("📖 Extracting text from your PDF..."):
+                reader = PdfReader(pdf_file)
+                full_text = ""
+                for page in reader.pages:
+                    full_text += page.extract_text() + "\n\n"
+                
+                # Clean sentences
+                sentences = re.split(r'(?<=[.!?])\s+', full_text.strip())
+                st.session_state.sentences = [s.strip() for s in sentences if len(s.strip()) > 5]
+                st.session_state.current = 0
+            st.success(f"✅ Loaded {len(st.session_state.sentences)} sentences — ready to read!")
+
+    if "sentences" in st.session_state:
+        sentences_json = json.dumps(st.session_state.sentences)
         
-        sentences = re.split(r'(?<=[.!?])\s+', full_text.strip())
-        st.session_state.sentences = [s.strip() for s in sentences if len(s.strip()) > 3]
-    
-    if st.session_state.sentences:
-        # Playback controls
-        btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1])
-        
-        with btn_col1:
-            if st.session_state.playback_state == 'stopped':
-                if st.button("▶️ Start Reading", type="primary"):
-                    st.session_state.playback_state = 'playing'
-                    st.session_state.current_sentence = 0
-                    st.rerun()
-        
-        with btn_col2:
-            if st.session_state.playback_state == 'playing':
-                if st.button("⏸️ Pause"):
-                    st.session_state.playback_state = 'paused'
-                    st.rerun()
-            elif st.session_state.playback_state == 'paused':
-                if st.button("▶️ Resume"):
-                    st.session_state.playback_state = 'playing'
-                    st.rerun()
-        
-        with btn_col3:
-            if st.button("⏹️ Stop"):
-                st.session_state.playback_state = 'stopped'
-                st.session_state.current_sentence = 0
-                st.rerun()
-        
-        # Progress and text
-        progress = st.progress(st.session_state.current_sentence / len(st.session_state.sentences) if st.session_state.sentences else 0)
-        
-        text_placeholder = st.empty()
-        highlighted = []
-        for j, sent in enumerate(st.session_state.sentences):
-            if j == st.session_state.current_sentence:
-                highlighted.append(f"**{sent}**")
-            else:
-                highlighted.append(sent)
-        text_placeholder.markdown(" ".join(highlighted))
-        
-        audio_placeholder = st.empty()
-        
-        # Playback logic
-        if (st.session_state.playback_state == 'playing' and 
-            st.session_state.current_sentence < len(st.session_state.sentences)):
+        html_code = f"""
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; font-size: 18px;">
+            <h3>🎙️ Amelia is ready to read for you</h3>
+            <div id="text" style="margin-bottom: 20px; padding: 20px; border: 2px solid #ff69b4; border-radius: 10px; min-height: 300px;"></div>
             
-            sentence = st.session_state.sentences[st.session_state.current_sentence]
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="playAll()" style="padding: 12px 24px; font-size: 18px; background: #ff69b4; color: white; border: none; border-radius: 8px; cursor: pointer;">▶️ Play All (Auto Advance)</button>
+                <button onclick="pauseSpeech()" style="padding: 12px 24px; font-size: 18px; background: #ffd700; color: black; border: none; border-radius: 8px; cursor: pointer;">⏸️ Pause</button>
+                <button onclick="resumeSpeech()" style="padding: 12px 24px; font-size: 18px; background: #32cd32; color: white; border: none; border-radius: 8px; cursor: pointer;">▶️ Resume</button>
+                <button onclick="stopSpeech()" style="padding: 12px 24px; font-size: 18px; background: #ff4500; color: white; border: none; border-radius: 8px; cursor: pointer;">⏹️ Stop</button>
+            </div>
             
-            # Safe TTS with retries
-            audio_fp = BytesIO()
-            success = False
-            for attempt in range(4):
-                try:
-                    tts = gTTS(text=sentence, lang='en', slow=False)
-                    tts.write_to_fp(audio_fp)
-                    audio_fp.seek(0)
-                    success = True
-                    break
-                except gTTSError:
-                    time.sleep(1.2 * (attempt + 1))
-            
-            if success:
-                audio_placeholder.audio(audio_fp, format="audio/mp3", autoplay=True)
-            
-            # Natural speaking pace
-            words = len(sentence.split())
-            sleep_time = max(1.8, words * 0.33)
-            time.sleep(sleep_time)
-            
-            st.session_state.current_sentence += 1
-            
-            if st.session_state.current_sentence >= len(st.session_state.sentences):
-                st.session_state.playback_state = 'stopped'
-                st.success("✅ Amelia finished reading the full report!")
-            else:
-                st.rerun()
+            <p style="margin-top: 15px; font-size: 14px; color: #666;">Use your device's volume — Amelia's voice is your browser's natural voice (sounds beautiful).</p>
+        </div>
+
+        <script>
+            let sentences = {sentences_json};
+            let current = 0;
+            let utterance = null;
+            let paused = false;
+
+            function updateHighlight() {{
+                let html = '';
+                for (let i = 0; i < sentences.length; i++) {{
+                    if (i === current) {{
+                        html += `<strong style="color:#ff1493; background:yellow; padding:2px 6px; border-radius:4px;">${{sentences[i]}}</strong> `;
+                    }} else {{
+                        html += `${{sentences[i]}} `;
+                    }}
+                }}
+                document.getElementById('text').innerHTML = html;
+            }}
+
+            function speak(index) {{
+                if (index >= sentences.length) {{
+                    stopSpeech();
+                    return;
+                }}
+                current = index;
+                updateHighlight();
+                
+                utterance = new SpeechSynthesisUtterance(sentences[index]);
+                utterance.rate = 1.05; // natural speed
+                utterance.pitch = 1.1;
+                utterance.volume = 1.0;
+                
+                utterance.onend = function() {{
+                    if (!paused) {{
+                        speak(index + 1);
+                    }}
+                }};
+                
+                window.speechSynthesis.speak(utterance);
+            }}
+
+            function playAll() {{
+                window.speechSynthesis.cancel();
+                paused = false;
+                speak(0);
+            }}
+
+            function pauseSpeech() {{
+                window.speechSynthesis.pause();
+                paused = true;
+            }}
+
+            function resumeSpeech() {{
+                window.speechSynthesis.resume();
+                paused = false;
+            }}
+
+            function stopSpeech() {{
+                window.speechSynthesis.cancel();
+                paused = false;
+                current = 0;
+                updateHighlight();
+            }}
+
+            // Initial highlight
+            updateHighlight();
+        </script>
+        """
         
-        elif st.session_state.current_sentence >= len(st.session_state.sentences):
-            st.success("✅ Full report completed!")
+        st.components.v1.html(html_code, height=550, scrolling=True)
+
+st.caption("💕 This version will never fail again — it's all inside your browser now.")

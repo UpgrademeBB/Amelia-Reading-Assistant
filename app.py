@@ -1,4 +1,4 @@
-mport streamlit as st
+import streamlit as st
 from pypdf import PdfReader
 import time
 from gtts import gTTS

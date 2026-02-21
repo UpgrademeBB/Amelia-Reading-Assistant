@@ -1,2 +1,2 @@
-cstreamlit
+streamlit
 PyPDF2

@@ -12,7 +12,7 @@ col1, col2 = st.columns([1, 2])
 with col1:
     st.subheader("Amelia")
     
-    # MP4 loop plays automatically on left
+    # MP4 loop — plays automatically on left, stays looping
     st.caption("Amelia Movement Loop (MP4)")
     video_file = st.file_uploader("Upload Amelia typing loop (MP4)", type="mp4")
     if video_file:
@@ -31,11 +31,9 @@ with col2:
         sentences = [s.strip() + "." for s in full_text.replace("\n", " ").split(".") if s.strip()]
         
         if st.button("▶️ Start Reading"):
-            # Video keeps looping
-            if video_file:
-                st.video(video_file, format="video/mp4", loop=True, autoplay=True)
+            # Video keeps playing (no duplicate call)
             
-            # Automatic voice — Amelia speaks the whole report
+            # Automatic female voice
             tts = gTTS(text=full_text, lang='en', slow=False)
             audio_bytes = BytesIO()
             tts.write_to_fp(audio_bytes)

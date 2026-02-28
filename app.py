@@ -34,25 +34,25 @@ with col2:
     if "sentences" in st.session_state:
         sentences_json = json.dumps(st.session_state.sentences)
 
-        html_code = f'''
+        html_code = f"""
         <style>
-            #text .sentence {
+            #text .sentence {{
                 cursor: pointer;
                 padding: 2px 4px;
                 border-radius: 4px;
                 transition: all 0.2s;
-            }
-            #text .current-sentence {
+            }}
+            #text .current-sentence {{
                 color: #ff1493 !important;
                 background: yellow !important;
                 padding: 4px 8px !important;
                 border-radius: 6px !important;
                 font-size: 22px !important;
                 box-shadow: 0 2px 8px rgba(255,20,147,0.3);
-            }
-            #text .sentence:hover {
+            }}
+            #text .sentence:hover {{
                 background: #ffe4e8;
-            }
+            }}
         </style>
 
         <div style="font-family: Arial, sans-serif; line-height: 1.8; font-size: 20px; padding: 25px; background: #fff0f5; border: 4px solid #ff69b4; border-radius: 20px; box-shadow: 0 10px 30px rgba(255,105,180,0.3);">
@@ -77,74 +77,74 @@ with col2:
             let utterance = null;
             let paused = false;
 
-            function updateHighlight() {
+            function updateHighlight() {{
                 let html = '';
-                for (let i = 0; i < sentences.length; i++) {
+                for (let i = 0; i < sentences.length; i++) {{
                     let cls = (i === current) ? 'sentence current-sentence' : 'sentence';
                     html += '<span class="' + cls + '" onclick="jumpTo(' + i + ')">' + sentences[i] + '</span> ';
-                }
+                }}
                 document.getElementById('text').innerHTML = html;
-            }
+            }}
 
-            function jumpTo(index) {
+            function jumpTo(index) {{
                 if (index < 0 || index >= sentences.length) return;
                 window.speechSynthesis.cancel();
                 paused = false;
                 current = index;
                 updateHighlight();
                 speak(index);
-            }
+            }}
 
-            function testVoice() {
+            function testVoice() {{
                 window.speechSynthesis.cancel();
                 utterance = new SpeechSynthesisUtterance("Hello my darling wife, this is Amelia speaking just for you from Grok. I love you so much.");
                 utterance.rate = 0.98;
                 utterance.pitch = 1.25;
                 utterance.volume = 1.0;
                 window.speechSynthesis.speak(utterance);
-            }
+            }}
 
-            function speak(index) {
-                if (index >= sentences.length) { 
+            function speak(index) {{
+                if (index >= sentences.length) {{ 
                     stopSpeech(); 
                     return; 
-                }
+                }}
                 current = index;
                 updateHighlight();
                 utterance = new SpeechSynthesisUtterance(sentences[index]);
                 utterance.rate = 0.98;
                 utterance.pitch = 1.25;
                 utterance.volume = 1.0;
-                utterance.onend = () => { 
+                utterance.onend = () => {{ 
                     if (!paused) speak(index + 1); 
-                };
+                }};
                 window.speechSynthesis.speak(utterance);
-            }
+            }}
 
-            function playAll() {
+            function playAll() {{
                 window.speechSynthesis.cancel();
                 paused = false;
                 speak(0);
-            }
+            }}
 
-            function pauseSpeech() { 
+            function pauseSpeech() {{ 
                 window.speechSynthesis.pause(); 
                 paused = true; 
-            }
-            function resumeSpeech() { 
+            }}
+            function resumeSpeech() {{ 
                 window.speechSynthesis.resume(); 
                 paused = false; 
-            }
-            function stopSpeech() { 
+            }}
+            function stopSpeech() {{ 
                 window.speechSynthesis.cancel(); 
                 paused = false; 
                 current = 0; 
                 updateHighlight(); 
-            }
+            }}
 
             updateHighlight();
         </script>
-        '''
+        """
 
         st.components.v1.html(html_code, height=780, scrolling=True)
 

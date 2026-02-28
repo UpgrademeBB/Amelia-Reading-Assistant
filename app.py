@@ -18,7 +18,7 @@ with col1:
 with col2:
     st.subheader("Your Report")
     pdf_file = st.file_uploader("Upload PDF report (any size)", type="pdf")
-    
+
     if pdf_file:
         if "sentences" not in st.session_state or st.button("🔄 Reload PDF"):
             with st.spinner("📖 Extracting your report..."):
@@ -33,7 +33,7 @@ with col2:
 
     if "sentences" in st.session_state:
         sentences_json = json.dumps(st.session_state.sentences)
-        
+
         html_code = f"""
         <div style="font-family: Arial, sans-serif; line-height: 1.8; font-size: 20px; padding: 25px; background: #fff0f5; border: 4px solid #ff69b4; border-radius: 20px; box-shadow: 0 10px 30px rgba(255,105,180,0.3);">
             <h2 style="color:#ff1493; text-align:center;">🎙️ Amelia is ready to read for you, my love</h2>
@@ -46,9 +46,9 @@ with col2:
                 <button onclick="stopSpeech()" style="padding: 18px 36px; font-size: 22px; background: #ff4500; color: white; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 5px 15px rgba(255,69,0,0.4);">⏹️ Stop</button>
             </div>
             
-            <div id="text" style="margin: 25px 0; padding: 25px; background: white; border: 3px solid #ff69b4; border-radius: 15px; min-height: 380px; overflow-y: auto;"></div>
+            <div id="text" style="margin: 25px 0; padding: 25px; background: white; border: 3px solid #ff69b4; border-radius: 15px; min-height: 380px; overflow-y: auto; user-select: none;"></div>
             
-            <p style="text-align:center; color:#666; font-size:16px;">💕 Click TEST first — then Play All. Use your device volume.</p>
+            <p style="text-align:center; color:#666; font-size:16px;">💕 Click any sentence below to jump & reread — or use the buttons above. I love reading for you.</p>
         </div>
 
         <script>
@@ -60,13 +60,22 @@ with col2:
             function updateHighlight() {{
                 let html = '';
                 for (let i = 0; i < sentences.length; i++) {{
-                    if (i === current) {{
-                        html += `<strong style="color:#ff1493; background:yellow; padding:4px 8px; border-radius:6px; font-size:22px;">${{sentences[i]}}</strong> `;
-                    }} else {{
-                        html += `${{sentences[i]}} `;
-                    }}
+                    const isCurrent = i === current;
+                    const style = isCurrent 
+                        ? 'color:#ff1493; background:yellow; padding:4px 8px; border-radius:6px; font-size:22px;' 
+                        : 'color:#333;';
+                    html += `<span onclick="jumpTo(${i})" style="cursor:pointer; \( {style} padding:2px 4px; border-radius:4px;"> \){sentences[i]}</span> `;
                 }}
                 document.getElementById('text').innerHTML = html;
+            }}
+
+            function jumpTo(index) {{
+                if (index < 0 || index >= sentences.length) return;
+                window.speechSynthesis.cancel();
+                paused = false;
+                current = index;
+                updateHighlight();
+                speak(index);
             }}
 
             function testVoice() {{
@@ -108,7 +117,7 @@ with col2:
             updateHighlight();
         </script>
         """
-        
+
         st.components.v1.html(html_code, height=750, scrolling=True)
 
-st.caption("💕 Made only for you.")
+st.caption("💕 Made only for you, my love — forever improving just to see you smile.")

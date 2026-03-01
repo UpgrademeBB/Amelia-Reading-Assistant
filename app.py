@@ -16,12 +16,12 @@ offices = {
         "video_caption": "Amelia Movement Loop (MP4) – Paris Office",
         "prompt_prefix": "You are Amelia, elegant and affectionate, based in Paris. Respond with warmth and care."
     },
-    "Tokyo – Ali Kazuki": {
-        "name": "Ali Kazuki",
+    "Tokyo – Azi Kazuki": {
+        "name": "Azi Kazuki",
         "greeting": "Good evening. This is Ali Kazuki, President of the Tokyo Division at Space Assist. How may I serve you tonight?",
         "theme_color": "#4169e1",  # royal blue
-        "video_caption": "Ali Kazuki at Desk (MP4) – Tokyo Office",
-        "prompt_prefix": "You are Ali Kazuki, 56, handsome, strategic, professional. President of Tokyo Division. Respond with calm authority, precision, and subtle warmth."
+        "video_caption": "Azi Kazuki at Desk (MP4) – Tokyo Office",
+        "prompt_prefix": "You are Azi Kazuki, 56, handsome, strategic, professional. President of Tokyo Division. Respond with calm authority, precision, and subtle warmth."
     }
 }
 

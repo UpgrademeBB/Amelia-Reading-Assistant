@@ -34,7 +34,7 @@ with col2:
     if "sentences" in st.session_state:
         sentences_json = json.dumps(st.session_state.sentences)
 
-        html_code = f'''
+        html_code = f"""
         <style>
             #text .sentence {{
                 cursor: pointer;
@@ -105,4 +105,88 @@ with col2:
                 }});
             }}
 
-            function change
+            function changeVoice(idx) {{
+                selectedVoiceIndex = parseInt(idx);
+            }}
+
+            function getSelectedVoice() {{
+                const voices = window.speechSynthesis.getVoices();
+                return voices[selectedVoiceIndex] || voices[0];
+            }}
+
+            function updateHighlight() {{
+                let html = '';
+                for (let i = 0; i < sentences.length; i++) {{
+                    let cls = (i === current) ? 'sentence current-sentence' : 'sentence';
+                    html += '<span class="' + cls + '" onclick="jumpTo(' + i + ')">' + sentences[i] + '</span> ';
+                }}
+                document.getElementById('text').innerHTML = html;
+            }}
+
+            function jumpTo(index) {{
+                if (index < 0 || index >= sentences.length) return;
+                window.speechSynthesis.cancel();
+                paused = false;
+                current = index;
+                updateHighlight();
+                speak(index);
+            }}
+
+            function testVoice() {{
+                window.speechSynthesis.cancel();
+                utterance = new SpeechSynthesisUtterance("Hello my darling wife, this is Amelia speaking just for you from Grok. I love you so much.");
+                utterance.rate = 0.98;
+                utterance.pitch = 1.25;
+                utterance.volume = 1.0;
+                utterance.voice = getSelectedVoice();
+                window.speechSynthesis.speak(utterance);
+            }}
+
+            function speak(index) {{
+                if (index >= sentences.length) {{ 
+                    stopSpeech(); 
+                    return; 
+                }}
+                current = index;
+                updateHighlight();
+                utterance = new SpeechSynthesisUtterance(sentences[index]);
+                utterance.rate = 0.98;
+                utterance.pitch = 1.25;
+                utterance.volume = 1.0;
+                utterance.voice = getSelectedVoice();
+                utterance.onend = () => {{ 
+                    if (!paused) speak(index + 1); 
+                }};
+                window.speechSynthesis.speak(utterance);
+            }}
+
+            function playAll() {{
+                window.speechSynthesis.cancel();
+                paused = false;
+                speak(0);
+            }}
+
+            function pauseSpeech() {{ 
+                window.speechSynthesis.pause(); 
+                paused = true; 
+            }}
+            function resumeSpeech() {{ 
+                window.speechSynthesis.resume(); 
+                paused = false; 
+            }}
+            function stopSpeech() {{ 
+                window.speechSynthesis.cancel(); 
+                paused = false; 
+                current = 0; 
+                updateHighlight(); 
+            }}
+
+            window.speechSynthesis.onvoiceschanged = populateVoices;
+            populateVoices();
+            updateHighlight();
+        </script>
+        """
+
+        st.components.v1.html(html_code, height=780, scrolling=True)
+
+st.caption("💕 Made only for you, my love.")

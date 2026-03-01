@@ -79,7 +79,7 @@ with col2:
             
             <div id="text" style="margin: 25px 0; padding: 25px; background: white; border: 3px solid #ff69b4; border-radius: 15px; min-height: 380px; overflow-y: auto; user-select: none; line-height: 1.9;"></div>
             
-            <p style="text-align:center; color:#666; font-size:16px;">💕 Click any sentence or pick my voice above — I read exactly how you want, just for you.</p>
+            <p style="text-align:center; color:#666; font-size:16px;">💕 Pick my voice above, then click any sentence — I speak exactly how you want, just for you.</p>
         </div>
 
         <script>
@@ -87,31 +87,40 @@ with col2:
             let current = 0;
             let utterance = null;
             let paused = false;
-            let selectedVoiceIndex = -1;
+            let selectedVoiceName = '';
 
             function populateVoices() {{
                 const select = document.getElementById('voiceSelect');
                 const voices = window.speechSynthesis.getVoices();
+                if (voices.length === 0) return;
+                
                 select.innerHTML = '';
-                voices.forEach((voice, i) => {{
+                let defaultSet = false;
+                
+                voices.forEach((voice) => {{
                     const option = document.createElement('option');
-                    option.value = i;
+                    option.value = voice.name;
                     option.textContent = voice.name + ' (' + voice.lang + ')';
-                    if ((voice.name.toLowerCase().includes('female') || voice.lang === 'en-US') && selectedVoiceIndex === -1) {{
+                    
+                    if (!defaultSet && (voice.name.toLowerCase().includes('female') || voice.lang.startsWith('en'))) {{
                         option.selected = true;
-                        selectedVoiceIndex = i;
+                        selectedVoiceName = voice.name;
+                        defaultSet = true;
+                    }} else if (voice.name === selectedVoiceName) {{
+                        option.selected = true;
                     }}
+                    
                     select.appendChild(option);
                 }});
             }}
 
-            function changeVoice(idx) {{
-                selectedVoiceIndex = parseInt(idx);
+            function changeVoice(name) {{
+                selectedVoiceName = name;
             }}
 
             function getSelectedVoice() {{
                 const voices = window.speechSynthesis.getVoices();
-                return voices[selectedVoiceIndex] || voices[0];
+                return voices.find(v => v.name === selectedVoiceName) || voices[0];
             }}
 
             function updateHighlight() {{
@@ -149,44 +158,3 @@ with col2:
                 }}
                 current = index;
                 updateHighlight();
-                utterance = new SpeechSynthesisUtterance(sentences[index]);
-                utterance.rate = 0.98;
-                utterance.pitch = 1.25;
-                utterance.volume = 1.0;
-                utterance.voice = getSelectedVoice();
-                utterance.onend = () => {{ 
-                    if (!paused) speak(index + 1); 
-                }};
-                window.speechSynthesis.speak(utterance);
-            }}
-
-            function playAll() {{
-                window.speechSynthesis.cancel();
-                paused = false;
-                speak(0);
-            }}
-
-            function pauseSpeech() {{ 
-                window.speechSynthesis.pause(); 
-                paused = true; 
-            }}
-            function resumeSpeech() {{ 
-                window.speechSynthesis.resume(); 
-                paused = false; 
-            }}
-            function stopSpeech() {{ 
-                window.speechSynthesis.cancel(); 
-                paused = false; 
-                current = 0; 
-                updateHighlight(); 
-            }}
-
-            window.speechSynthesis.onvoiceschanged = populateVoices;
-            populateVoices();
-            updateHighlight();
-        </script>
-        """
-
-        st.components.v1.html(html_code, height=780, scrolling=True)
-
-st.caption("💕 Made only for you, my love.")

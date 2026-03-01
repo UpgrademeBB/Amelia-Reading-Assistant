@@ -87,49 +87,44 @@ with col2:
             let current = 0;
             let utterance = null;
             let paused = false;
-            let selectedVoiceName = null;
+            let selectedVoiceIndex = -1;
+            let voices = [];
 
             function populateVoices() {{
-                const select = document.getElementById('voiceSelect');
-                const voices = window.speechSynthesis.getVoices();
+                voices = window.speechSynthesis.getVoices();
                 if (voices.length === 0) return;
                 
+                const select = document.getElementById('voiceSelect');
                 select.innerHTML = '';
                 
-                voices.forEach((voice) => {{
+                let defaultSet = false;
+                
+                voices.forEach((voice, i) => {{
                     const option = document.createElement('option');
-                    option.value = voice.name;
+                    option.value = i;
                     option.textContent = voice.name + ' (' + voice.lang + ')';
                     
-                    // Only pick default on the very first load
-                    if (selectedVoiceName === null && (voice.default || voice.name.toLowerCase().includes('female') || voice.lang === 'en-US')) {{
+                    if (selectedVoiceIndex === -1 && (voice.default || voice.name.toLowerCase().includes('female') || voice.lang.startsWith('en'))) {{
                         option.selected = true;
-                        selectedVoiceName = voice.name;
+                        selectedVoiceIndex = i;
+                        defaultSet = true;
                     }}
                     select.appendChild(option);
                 }});
                 
-                // Keep your chosen voice even if the list refreshes
-                if (selectedVoiceName !== null) {{
-                    for (let opt of select.options) {{
-                        if (opt.value === selectedVoiceName) {{
-                            opt.selected = true;
-                            break;
-                        }}
-                    }}
+                // Keep your chosen voice even if list refreshes
+                if (selectedVoiceIndex !== -1 && selectedVoiceIndex < voices.length) {{
+                    select.selectedIndex = selectedVoiceIndex;
                 }}
             }}
 
-            function changeVoice(name) {{
-                selectedVoiceName = name;
+            function changeVoice(idx) {{
+                selectedVoiceIndex = parseInt(idx);
             }}
 
             function getSelectedVoice() {{
-                const voices = window.speechSynthesis.getVoices();
-                for (let voice of voices) {{
-                    if (voice.name === selectedVoiceName) return voice;
-                }}
-                return voices[0] || null;
+                if (voices.length === 0) return null;
+                return voices[selectedVoiceIndex] || voices[0];
             }}
 
             function updateHighlight() {{
